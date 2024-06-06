@@ -1,0 +1,13 @@
+[package]
+name = "sel4_task"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+sel4_cspace = { git = "https://github.com/rel4team/sel4_cspace.git" }
+sel4_common = { git = "https://github.com/rel4team/sel4_common.git" }
+sel4_vspace = { git = "https://github.com/rel4team/sel4_vspace.git" }
+log = "0.4.21"
+
+[features]
+ENABLE_SMP = []
