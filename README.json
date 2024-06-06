@@ -1,0 +1,10 @@
+{
+    "name": "sel4_task",
+    "description": "Basic module for building ReL4, defining the data structure and operation interface of task and scheduler.",
+    "authors": [{
+      "name": "CtrlZ233",
+      "email": "ctrlz.donghai@gmail.com"
+    }],
+    "keywords": ["microkernel"],
+    "doc_url": "https://github.com/rel4team/sel4_task/blob/main/README.md"
+  }
