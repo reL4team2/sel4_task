@@ -1,5 +1,7 @@
 use core::intrinsics::{likely, unlikely};
-use sel4_common::arch::{msgRegisterNum, n_exceptionMessage, n_syscallMessage, vm_rights_t, ArchReg, ArchTCB};
+use sel4_common::arch::{
+    msgRegisterNum, n_exceptionMessage, n_syscallMessage, vm_rights_t, ArchReg, ArchTCB,
+};
 use sel4_common::fault::*;
 use sel4_common::message_info::seL4_MessageInfo_t;
 use sel4_common::utils::{convert_to_mut_type_ref, pageBitsForSize};
