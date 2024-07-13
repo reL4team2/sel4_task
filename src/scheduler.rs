@@ -166,6 +166,7 @@ pub fn set_ks_scheduler_action(action: usize) {
 
 #[inline]
 /// Get the current thread, and returns a mutable tcb reference to the current thread.
+/// FIXME: fix the name of this function, get_current_thread
 pub fn get_currenct_thread() -> &'static mut tcb_t {
     unsafe {
         #[cfg(feature = "ENABLE_SMP")]
