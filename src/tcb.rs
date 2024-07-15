@@ -9,7 +9,10 @@ use sel4_common::utils::{convert_to_mut_type_ref, pageBitsForSize};
 use sel4_common::BIT;
 use sel4_common::MASK;
 use sel4_cspace::interface::{cap_t, cte_insert, cte_t, mdb_node_t, resolve_address_bits, CapTag};
-use sel4_vspace::{pptr_t, set_vm_root};
+use sel4_vspace::{
+    armKSGlobalUserVSpace, find_vspace_for_asid, kpptr_to_paddr, pptr_t, setCurrentUserVSpaceRoot,
+    set_vm_root, ttbr_new,
+};
 
 use crate::tcb_queue::tcb_queue_t;
 use sel4_common::sel4_config::*;
@@ -302,6 +305,55 @@ impl tcb_t {
     pub fn set_vm_root(&self) -> Result<(), lookup_fault_t> {
         // let threadRoot = &(*getCSpace(thread as usize, tcbVTable)).cap;
         let thread_root = self.get_cspace(tcbVTable).cap;
+        #[cfg(target_arch = "aarch64")]
+        {
+            if !thread_root.is_valid_native_root() {
+                unsafe {
+                    setCurrentUserVSpaceRoot(ttbr_new(
+                        0,
+                        kpptr_to_paddr(armKSGlobalUserVSpace.as_ptr() as usize),
+                    ));
+                }
+                return Ok(());
+            }
+
+            let vspace_root = thread_root.get_pgd_base_ptr();
+            let asid = thread_root.get_pgd_mapped_asid();
+            let find_ret = find_vspace_for_asid(asid);
+            if let Some(root) = find_ret.vspace_root {
+                if find_ret.status != exception_t::EXCEPTION_NONE || root as usize != vspace_root {
+                    log::debug!("root :{:#x} vspace_root :{:#x}", root as usize, vspace_root);
+                    unsafe {
+                        setCurrentUserVSpaceRoot(ttbr_new(
+                            0,
+                            kpptr_to_paddr(armKSGlobalUserVSpace.as_ptr() as usize),
+                        ));
+                    }
+                    return Ok(());
+                }
+            }
+        }
+        // TODO: Implement the vspace_root check like sel4 below.
+        /*
+            cap_t threadRoot;
+            asid_t asid;
+            vspace_root_t *vspaceRoot;
+            findVSpaceForASID_ret_t find_ret;
+            threadRoot = TCB_PTR_CTE_PTR(tcb, tcbVTable)->cap;
+            if (!isValidNativeRoot(threadRoot)) {
+                setCurrentUserVSpaceRoot(ttbr_new(0, addrFromKPPtr(armKSGlobalUserVSpace)));
+                return;
+            }
+            vspaceRoot = VSPACE_PTR(cap_vtable_root_get_basePtr(threadRoot));
+            asid = cap_vtable_root_get_mappedASID(threadRoot);
+            find_ret = findVSpaceForASID(asid);
+            if (unlikely(find_ret.status != EXCEPTION_NONE || find_ret.vspace_root != vspaceRoot)) {
+                setCurrentUserVSpaceRoot(ttbr_new(0, addrFromKPPtr(armKSGlobalUserVSpace)));
+                return;
+            }
+            armv_contextSwitch(vspaceRoot, asid);
+        */
+
         set_vm_root(&thread_root)
     }
 
