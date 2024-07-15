@@ -9,6 +9,10 @@ use sel4_common::utils::{convert_to_mut_type_ref, pageBitsForSize};
 use sel4_common::BIT;
 use sel4_common::MASK;
 use sel4_cspace::interface::{cap_t, cte_insert, cte_t, mdb_node_t, resolve_address_bits, CapTag};
+#[cfg(target_arch = "aarch64")]
+use sel4_vspace::{
+    armKSGlobalUserVSpace, find_vspace_for_asid, kpptr_to_paddr, setCurrentUserVSpaceRoot, ttbr_new,
+};
 use sel4_vspace::{pptr_t, set_vm_root};
 
 use crate::tcb_queue::tcb_queue_t;
@@ -302,6 +306,34 @@ impl tcb_t {
     pub fn set_vm_root(&self) -> Result<(), lookup_fault_t> {
         // let threadRoot = &(*getCSpace(thread as usize, tcbVTable)).cap;
         let thread_root = self.get_cspace(tcbVTable).cap;
+        #[cfg(target_arch = "aarch64")]
+        {
+            if !thread_root.is_valid_native_root() {
+                unsafe {
+                    setCurrentUserVSpaceRoot(ttbr_new(
+                        0,
+                        kpptr_to_paddr(armKSGlobalUserVSpace.as_ptr() as usize),
+                    ));
+                }
+                return Ok(());
+            }
+
+            let vspace_root = thread_root.get_pgd_base_ptr();
+            let asid = thread_root.get_pgd_mapped_asid();
+            let find_ret = find_vspace_for_asid(asid);
+            if let Some(root) = find_ret.vspace_root {
+                if find_ret.status != exception_t::EXCEPTION_NONE || root as usize != vspace_root {
+                    log::debug!("root :{:#x} vspace_root :{:#x}", root as usize, vspace_root);
+                    unsafe {
+                        setCurrentUserVSpaceRoot(ttbr_new(
+                            0,
+                            kpptr_to_paddr(armKSGlobalUserVSpace.as_ptr() as usize),
+                        ));
+                    }
+                    return Ok(());
+                }
+            }
+        }
         set_vm_root(&thread_root)
     }
 
