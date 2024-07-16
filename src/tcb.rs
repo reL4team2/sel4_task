@@ -10,8 +10,11 @@ use sel4_common::BIT;
 use sel4_common::MASK;
 use sel4_cspace::interface::{cap_t, cte_insert, cte_t, mdb_node_t, resolve_address_bits, CapTag};
 #[cfg(target_arch = "aarch64")]
-use sel4_vspace::{find_vspace_for_asid, kpptr_to_paddr, setCurrentUserVSpaceRoot, ttbr_new};
-use sel4_vspace::{get_arm_global_user_vspace_base, pptr_t, set_vm_root};
+use sel4_vspace::{
+    find_vspace_for_asid, get_arm_global_user_vspace_base, kpptr_to_paddr,
+    setCurrentUserVSpaceRoot, ttbr_new,
+};
+use sel4_vspace::{pptr_t, set_vm_root};
 
 use crate::tcb_queue::tcb_queue_t;
 use sel4_common::sel4_config::*;
